@@ -31,6 +31,8 @@ Route::get('/v1/polls/{token}', [ApiPollController::class, 'show']);
 // Routes protégées : nécessitent d'être connecté
 Route::middleware('auth:sanctum')->group(function () {
 
+    Route::get('/v1/polls/{poll}/show', [ApiPollController::class, 'showById']);
+
     // Route de test foo (déjà existante)
     Route::get('/v1/foo', [ApiFooController::class, 'show']);
     Route::post('/v1/foo', [ApiFooController::class, 'store']);

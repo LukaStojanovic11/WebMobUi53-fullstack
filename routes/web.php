@@ -36,6 +36,11 @@ Route::middleware('auth')->group(function () {
     Route::get('/polls/dashboard', fn() => view('polls.dashboard'))->name('polls.dashboard');
     Route::get('/polls/dashboard-integrated', fn() => view('polls.dashboard-integrated'))
         ->name('polls.dashboard-integrated');
+    // Formulaire de création d'un sondage
+    Route::get('/polls/create', fn() => view('polls.form'))->name('polls.create');
+
+    // Formulaire d'édition d'un sondage
+    Route::get('/polls/{id}/edit', fn() => view('polls.form'))->name('polls.edit');
     Route::resource('posts', PostController::class)->except(['index', 'show']);
     Route::singleton('my-profile', MyProfileController::class)->destroyable();
     Route::match(['put', 'patch'], '/likes/{post}', [LikeController::class, 'update']);
