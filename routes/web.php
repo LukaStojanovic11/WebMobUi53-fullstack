@@ -32,13 +32,12 @@ Route::controller(AuthController::class)->group(function () {
 });
 
 Route::middleware('auth')->group(function () {
-    // Le dashboard des sondages — retourne simplement notre vue Blade qui charge Vue.js
+    // Le dashboard des sondages
     Route::get('/polls/dashboard', fn() => view('polls.dashboard'))->name('polls.dashboard');
     Route::get('/polls/dashboard-integrated', fn() => view('polls.dashboard-integrated'))
         ->name('polls.dashboard-integrated');
     // Formulaire de création d'un sondage
     Route::get('/polls/create', fn() => view('polls.form'))->name('polls.create');
-
     // Formulaire d'édition d'un sondage
     Route::get('/polls/{id}/edit', fn() => view('polls.form'))->name('polls.edit');
     Route::resource('posts', PostController::class)->except(['index', 'show']);
@@ -47,3 +46,6 @@ Route::middleware('auth')->group(function () {
     Route::resource('tokens', TokenController::class)->only(['index', 'create', 'store', 'destroy']);
     Route::post('/auth/logout', [AuthController::class, 'logout']);
 });
+
+// Page de vote publique — APRÈS le groupe auth pour éviter les conflits
+Route::get('/polls/{token}', fn() => view('polls.vote'))->name('polls.vote');
