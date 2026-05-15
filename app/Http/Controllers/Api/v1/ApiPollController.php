@@ -16,7 +16,6 @@ class ApiPollController extends Controller
      */
     public function index(Request $request)
     {
-        // On récupère les sondages avec leurs options et le nombre de votes
         $polls = $request->user()
             ->polls()
             ->with('options')
@@ -193,5 +192,61 @@ class ApiPollController extends Controller
         $option->delete();
 
         return response()->json(null, 204);
+    }
+
+    // -------------------------------------------------------
+    // VOTE
+    // -------------------------------------------------------
+
+    /**
+     * Enregistre un vote pour un sondage.
+     * POST /api/v1/polls/{token}/vote
+     */
+    public function vote(Request $request, string $token)
+    {
+        // On cherche le sondage par token
+        $poll = Poll::where('secret_token', $token)->first();
+
+        if (!$poll) {
+            return response()->json(['message' => 'Sondage introuvable.'], 404);
+        }
+
+        // On vérifie que le sondage est lancé
+        if ($poll->is_draft) {
+            return response()->json(['message' => 'Ce sondage n\'est pas encore lancé.'], 422);
+        }
+
+        // On vérifie que le sondage n'est pas expiré
+        if ($poll->ends_at && now()->isAfter($poll->ends_at)) {
+            return response()->json(['message' => 'Ce sondage est terminé.'], 422);
+        }
+
+        $validated = $request->validate([
+            'option_ids'   => 'required|array|min:1',
+            'option_ids.*' => 'integer|exists:poll_options,id',
+        ]);
+
+        // Pour un sondage à choix unique, on n'accepte qu'une seule option
+        if (!$poll->allow_multiple_choices && count($validated['option_ids']) > 1) {
+            return response()->json(['message' => 'Ce sondage n\'accepte qu\'un seul choix.'], 422);
+        }
+
+        // On vérifie que l'utilisateur n'a pas déjà voté (choix unique)
+        if (!$poll->allow_multiple_choices) {
+            $alreadyVoted = $poll->votes()->where('user_id', $request->user()->id)->exists();
+            if ($alreadyVoted) {
+                return response()->json(['message' => 'Vous avez déjà voté à ce sondage.'], 422);
+            }
+        }
+
+        // On enregistre les votes
+        foreach ($validated['option_ids'] as $optionId) {
+            $poll->votes()->create([
+                'user_id'        => $request->user()->id,
+                'poll_option_id' => $optionId,
+            ]);
+        }
+
+        return response()->json(['message' => 'Vote enregistré.'], 201);
     }
 }

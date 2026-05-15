@@ -11,8 +11,9 @@ export default defineConfig({
                 'resources/css/app.css',
                 'resources/js/poll-dashboard.js',
                 'resources/js/poll-dashboard-integrated.js',
-                // On ajoute notre nouvel entrypoint pour le formulaire
                 'resources/js/poll-form.js',
+                // Nouvel entrypoint pour la page de vote
+                'resources/js/poll-vote.js',
             ],
             refresh: true,
         }),

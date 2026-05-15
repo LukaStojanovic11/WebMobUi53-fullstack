@@ -8,7 +8,16 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class PollVote extends Model
 {
     /**
-     * Get the poll that owns the vote.
+     * Les champs que Laravel a le droit de remplir automatiquement.
+     */
+    protected $fillable = [
+        'poll_id',
+        'user_id',
+        'poll_option_id',
+    ];
+
+    /**
+     * Le sondage auquel appartient ce vote.
      */
     public function poll(): BelongsTo
     {
@@ -16,7 +25,7 @@ class PollVote extends Model
     }
 
     /**
-     * Get the user that cast the vote.
+     * L'utilisateur qui a voté.
      */
     public function user(): BelongsTo
     {
@@ -24,7 +33,7 @@ class PollVote extends Model
     }
 
     /**
-     * Get the option chosen.
+     * L'option choisie.
      */
     public function option(): BelongsTo
     {

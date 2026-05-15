@@ -47,4 +47,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/v1/polls/{poll}/options', [ApiPollController::class, 'storeOption']);
     Route::put('/v1/polls/{poll}/options/{option}', [ApiPollController::class, 'updateOption']);
     Route::delete('/v1/polls/{poll}/options/{option}', [ApiPollController::class, 'destroyOption']);
+
+    // Vote
+    Route::post('/v1/polls/{token}/vote', [ApiPollController::class, 'vote']);
 });
