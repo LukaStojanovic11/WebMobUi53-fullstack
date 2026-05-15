@@ -1,13 +1,9 @@
 {{--
     Vue Blade pour la page de vote.
-    On utilise le layout minimal (vue-app-layout) car cette page
-    doit être accessible sans être connecté (résultats publics).
+    On utilise le layout par défaut pour avoir le fond sombre
+    cohérent avec le reste de l'application.
 --}}
-<x-vue-app-layout>
-
-    <x-slot:title>
-        Sondage
-    </x-slot>
+<x-default-layout>
 
     <x-slot:scripts>
         @vite(['resources/js/poll-vote.js'])
@@ -15,4 +11,4 @@
 
     <div id="app"></div>
 
-</x-vue-app-layout>
+</x-default-layout>

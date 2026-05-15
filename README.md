@@ -1,77 +1,89 @@
-# HEIG-VD DévProdMéd Course - Mini-projet
+# WebMobUi53 — Application de sondage
 
-Ce dépôt contient le mini-projet à réaliser dans le cadre du cours
-_"[Développement de produit média (DévProdMéd)](https://github.com/heig-vd-devprodmed-course/heig-vd-devprodmed-course)"_
-enseigné à la
-[Haute Ecole d'Ingénierie et de Gestion du Canton de Vaud (HEIG-VD)](https://heig-vd.ch),
-Suisse.
+Application web fullstack Laravel + Vue.js permettant de créer, gérer et partager des sondages.
 
-## Objectif du mini-projet
+## Technologies
 
-L'objectif de ce mini-projet est de créer un réseau social simple en utilisant le
-framework [Laravel](https://laravel.com/). Ce projet permettra de mettre en pratique les concepts
-appris dans le cours.
+- **Backend** : Laravel 12
+- **Frontend** : Vue.js 3 + Tailwind CSS
+- **Base de données** : SQLite
+- **Auth** : Laravel Sanctum (cookie de session)
 
-## Pré-requis
+## Installation
 
-Afin de lancer ce projet, une stack compatible avec Laravel, est requise.
+### 1. Cloner le projet
 
-Voici les pré-requis nécessaires :
+    git clone https://github.com/LukaStojanovic11/WebMobUi53-fullstack.git
+    cd WebMobUi53-fullstack
 
-- PHP >= 8.0.
-- Composer.
-- Node.js et npm.
-- Une base de données (MySQL, PostgreSQL, SQLite, etc.).
-- Un serveur web (Apache, Nginx, etc.).
-
-[Laravel Herd](https://helm.sh/docs/charts/laravel/) est recommandé pour une installation facile de Laravel et de ses dépendances.
-
-## Développement local
-
-Pour développer et tester le mini-projet en local, voici les étapes à suivre :
-
-1. Forker ce dépôt
-
-2. Installer les dépendances avec npm et Composer :
-
-    ```bash
-    npm install && npm run build
+### 2. Installer les dépendances
 
     composer install
-    ```
+    npm install
 
-3. Copier le fichier `.env.example` en `.env`.
-4. Modifier les variables d'environnement si nécessaire (optionnel).
-5. Générer la clé d'application Laravel :
+### 3. Configurer l'environnement
 
-    ```bash
+    cp .env.example .env
     php artisan key:generate
-    ```
 
-6. Créer le lien symbolique pour les fichiers téléversés :
+Modifier .env :
 
-    ```bash
-    php artisan storage:link
-    ```
+    APP_URL=http://localhost:8000
+    SANCTUM_STATEFUL_DOMAINS=localhost:8000
+    SESSION_DOMAIN=localhost
+    SESSION_DRIVER=database
 
-7. Créer la base de données et exécuter les migrations :
+### 4. Créer la base de données
 
-    ```bash
     php artisan migrate
-    ```
-
-    S'il est nécessaire de réinitialiser la base de données, utiliser la commande `php artisan migrate:reset` puis `php artisan migrate` à nouveau.
-
-8. Optionnel : en mode développement, il est possible de peupler la base de données avec des données fictives :
-
-    ```bash
     php artisan db:seed
-    ```
 
-9. Démarrer le serveur de développement Laravel :
+### 5. Lancer l'application
 
-    ```bash
-    composer run dev
-    ```
+Dans deux terminaux séparés :
 
-L'application sera accessible à l'adresse <http://localhost:8000>.
+    php artisan serve
+
+    npm run dev
+
+L'application est accessible sur http://localhost:8000
+
+## Comptes de test
+
+Après le seeder :
+- Email : john.doe@example.com / Mot de passe : password
+- Email : jane.doe@example.com / Mot de passe : password
+
+## Fonctionnalités
+
+- Créer, modifier et supprimer des sondages
+- Configurer les options : choix simple ou multiple, résultats publics, durée
+- Lancer un sondage depuis le formulaire ou plus tard depuis le dashboard
+- Partager un sondage via un lien contenant un token unique
+- Voter sur un sondage via le lien de partage
+- Voir les résultats en temps réel (polling toutes les 5 secondes)
+- Accès anonyme aux résultats si les résultats sont publics
+
+## Architecture frontend
+
+Le frontend est composé de 3 applications Vue.js distinctes :
+
+- poll-dashboard.js → /polls/dashboard (liste des sondages)
+- poll-form.js → /polls/create et /polls/{id}/edit (formulaire)
+- poll-vote.js → /polls/{token} (page de vote)
+
+Chaque app est montée sur un div id="app" dans sa vue Blade respective.
+
+## API JSON
+
+Toutes les routes API sont préfixées par /api/v1/
+
+- GET    /api/v1/polls              → Liste des sondages (auth)
+- POST   /api/v1/polls              → Créer un sondage (auth)
+- PUT    /api/v1/polls/{id}         → Modifier un sondage (auth)
+- DELETE /api/v1/polls/{id}         → Supprimer un sondage (auth)
+- GET    /api/v1/polls/{token}      → Afficher un sondage (public)
+- POST   /api/v1/polls/{token}/vote → Voter (auth)
+- POST   /api/v1/polls/{id}/options           → Ajouter une option (auth)
+- PUT    /api/v1/polls/{id}/options/{oid}     → Modifier une option (auth)
+- DELETE /api/v1/polls/{id}/options/{oid}     → Supprimer une option (auth)
