@@ -1,50 +1,120 @@
 <script setup>
-  import { watch } from 'vue';
-  import PollTable from './components/PollTable.vue';
-  import { useFetchApi } from './composables/useFetchApi';
-  import { usePolling } from './composables/usePolling';
+import { ref, onMounted } from 'vue';
+import { useFetchApi } from './composables/useFetchApi';
 
-  const props = defineProps({
-    polls: { type: Array, default: () => [] },
-    loginUrl: { type: String, default: null },
-  });
+// On récupère les fonctions du composable useFetchApi
+const { fetchApi } = useFetchApi();
 
-  const { fetchApiToRef } = useFetchApi();
+// La liste des sondages (tableau vide au départ)
+const polls = ref([]);
 
-  const { data: getResult, error: getError, fetchNow } = fetchApiToRef({ url: 'polls/' });
-  const { data: postResult, error: postError } = fetchApiToRef({ url: '/foo', data: { id: 1 } });
+// Message d'erreur si quelque chose tourne mal
+const error = ref(null);
 
-  function handleError(err) {
-    if (!err) return;
-    if (err?.status === 401) {
-      window.location.href = props.loginUrl;
-    } else {
-      console.error(err);
+// Charger les sondages depuis l'API au démarrage du composant
+onMounted(async () => {
+    try {
+        // GET /api/v1/polls → retourne la liste des sondages de l'utilisateur connecté
+        polls.value = await fetchApi({ url: '/polls' });
+    } catch (err) {
+        // Si l'utilisateur n'est pas connecté (401), on le redirige vers le login
+        if (err.status === 401) {
+            window.location.href = '/auth/login';
+        } else {
+            error.value = 'Impossible de charger les sondages.';
+        }
     }
-  }
+});
 
-  watch(getError, err => handleError(err));
-  watch(postError, handleError);
+// Supprimer un sondage
+async function deletePoll(poll) {
+    // On demande confirmation avant de supprimer
+    if (!confirm(`Supprimer le sondage "${poll.question}" ?`)) return;
 
-  usePolling(fetchNow);
+    try {
+        // DELETE /api/v1/polls/{id}
+        await fetchApi({ url: `/polls/${poll.id}`, method: 'DELETE' });
+
+        // On retire le sondage de la liste locale sans recharger la page
+        polls.value = polls.value.filter(p => p.id !== poll.id);
+    } catch (err) {
+        alert('Erreur lors de la suppression.');
+    }
+}
+
+// Copier le lien de partage dans le presse-papier
+function copyShareLink(token) {
+    // On construit l'URL complète avec le token
+    const url = `${window.location.origin}/polls/${token}`;
+    navigator.clipboard.writeText(url);
+    alert('Lien copié !');
+}
 </script>
 
 <template>
-  <main class="min-h-screen p-6">
-    <h1 class="mb-4 text-xl font-semibold">Mes sondages</h1>
+    <main class="min-h-screen p-6 max-w-3xl mx-auto">
 
-    <PollTable :polls="props.polls" />
+        <!-- Titre et bouton créer -->
+        <div class="flex justify-between items-center mb-6">
+            <h1 class="text-2xl font-bold">Mes sondages</h1>
+            <a href="/polls/create" class="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700">
+                + Nouveau sondage
+            </a>
+        </div>
 
-    <section class="mt-6">
-      <h2>GET /api/v1/polls</h2>
-      <pre v-if="getResult">{{ getResult }}</pre>
-      <p v-else>Chargement...</p>
-    </section>
+        <!-- Message d'erreur -->
+        <p v-if="error" class="text-red-400 mb-4">{{ error }}</p>
 
-    <section class="mt-4">
-      <h2>POST /api/v1/foo</h2>
-      <pre v-if="postResult">{{ postResult }}</pre>
-      <p v-else>Chargement...</p>
-    </section>
-  </main>
+        <!-- Message si aucun sondage -->
+        <p v-if="polls.length === 0 && !error" class="text-gray-400">
+            Vous n'avez pas encore de sondage.
+        </p>
+
+        <!-- Liste des sondages -->
+        <ul class="space-y-4">
+            <li
+                v-for="poll in polls"
+                :key="poll.id"
+                class="bg-gray-800 rounded p-4 flex justify-between items-start"
+            >
+                <!-- Infos du sondage -->
+                <div>
+                    <p class="font-semibold text-white">{{ poll.question }}</p>
+                    <!-- Badge brouillon ou lancé -->
+                    <span
+                        v-if="poll.is_draft"
+                        class="text-xs bg-yellow-600 text-white px-2 py-0.5 rounded mt-1 inline-block"
+                    >
+                        Brouillon
+                    </span>
+                    <span
+                        v-else
+                        class="text-xs bg-green-600 text-white px-2 py-0.5 rounded mt-1 inline-block"
+                    >
+                        Lancé
+                    </span>
+                </div>
+
+                <!-- Actions -->
+                <div class="flex gap-2 ml-4 flex-shrink-0">
+                    <!-- Copier le lien de partage -->
+                    <button
+                        @click="copyShareLink(poll.secret_token)"
+                        class="bg-blue-600 text-white text-sm px-3 py-1 rounded hover:bg-blue-700"
+                    >
+                        Copier lien
+                    </button>
+
+                    <!-- Supprimer -->
+                    <button
+                        @click="deletePoll(poll)"
+                        class="bg-red-600 text-white text-sm px-3 py-1 rounded hover:bg-red-700"
+                    >
+                        Supprimer
+                    </button>
+                </div>
+            </li>
+        </ul>
+
+    </main>
 </template>
