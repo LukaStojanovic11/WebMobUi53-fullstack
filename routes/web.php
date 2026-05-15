@@ -32,7 +32,8 @@ Route::controller(AuthController::class)->group(function () {
 });
 
 Route::middleware('auth')->group(function () {
-    Route::get('/polls/dashboard', PollDashboardController::class)->name('polls.dashboard');
+    // Le dashboard des sondages — retourne simplement notre vue Blade qui charge Vue.js
+    Route::get('/polls/dashboard', fn() => view('polls.dashboard'))->name('polls.dashboard');
     Route::get('/polls/dashboard-integrated', fn() => view('polls.dashboard-integrated'))
         ->name('polls.dashboard-integrated');
     Route::resource('posts', PostController::class)->except(['index', 'show']);
