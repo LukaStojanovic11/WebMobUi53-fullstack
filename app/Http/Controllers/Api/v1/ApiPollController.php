@@ -16,11 +16,10 @@ class ApiPollController extends Controller
      */
     public function index(Request $request)
     {
-        // On récupère les sondages de l'utilisateur connecté,
-        // du plus récent au plus ancien.
-        // withCount('votes') ajoute un champ "votes_count" à chaque sondage.
+        // On récupère les sondages avec leurs options et le nombre de votes
         $polls = $request->user()
             ->polls()
+            ->with('options')
             ->withCount('votes')
             ->orderBy('created_at', 'desc')
             ->get();
@@ -34,9 +33,7 @@ class ApiPollController extends Controller
      */
     public function show(string $token)
     {
-        // On cherche le sondage par son token unique
         $poll = Poll::with(['options' => function ($query) {
-            // Pour chaque option, on compte combien de votes elle a reçu
             $query->withCount('votes');
         }])->where('secret_token', $token)->first();
 
@@ -48,21 +45,34 @@ class ApiPollController extends Controller
     }
 
     /**
+     * Affiche un sondage par son ID (pour l'édition).
+     * GET /api/v1/polls/{poll}/show
+     */
+    public function showById(Request $request, Poll $poll)
+    {
+        if ($poll->user_id !== $request->user()->id) {
+            return response()->json(['message' => 'Accès refusé.'], 403);
+        }
+
+        $poll->load('options');
+
+        return response()->json($poll);
+    }
+
+    /**
      * Crée un nouveau sondage.
      * POST /api/v1/polls
      */
     public function store(Request $request)
     {
-        // Validation des données reçues du frontend
         $validated = $request->validate([
             'question'               => 'required|string|max:255',
             'allow_multiple_choices' => 'boolean',
             'results_public'         => 'boolean',
-            'duration'               => 'nullable|integer|min:1', // durée en secondes
+            'duration'               => 'nullable|integer|min:1',
             'is_draft'               => 'boolean',
         ]);
 
-        // Création du sondage dans la base de données
         $poll = Poll::create([
             'user_id'                => $request->user()->id,
             'question'               => $validated['question'],
@@ -70,17 +80,13 @@ class ApiPollController extends Controller
             'results_public'         => $validated['results_public'] ?? false,
             'duration'               => $validated['duration'] ?? null,
             'is_draft'               => $validated['is_draft'] ?? true,
-            // On génère un token unique aléatoire de 32 caractères
             'secret_token'           => Str::random(32),
-            // Si is_draft est false, le sondage est lancé tout de suite
             'started_at'             => isset($validated['is_draft']) && !$validated['is_draft'] ? now() : null,
-            // Si une durée est donnée ET que le sondage est lancé, on calcule ends_at
             'ends_at'                => (isset($validated['is_draft']) && !$validated['is_draft'] && isset($validated['duration']))
                 ? now()->addSeconds($validated['duration'])
                 : null,
         ]);
 
-        // On retourne le sondage créé avec le code 201 (Created)
         return response()->json($poll, 201);
     }
 
@@ -90,7 +96,6 @@ class ApiPollController extends Controller
      */
     public function update(Request $request, Poll $poll)
     {
-        // Vérification : seul le créateur peut modifier son sondage
         if ($poll->user_id !== $request->user()->id) {
             return response()->json(['message' => 'Accès refusé.'], 403);
         }
@@ -103,11 +108,8 @@ class ApiPollController extends Controller
             'is_draft'               => 'boolean',
         ]);
 
-        // Si on passe is_draft à false (= on lance le sondage)
-        // et qu'il n'était pas encore lancé, on enregistre started_at
         if (isset($validated['is_draft']) && !$validated['is_draft'] && $poll->started_at === null) {
             $validated['started_at'] = now();
-            // Si une durée est définie, on calcule ends_at
             $duration = $validated['duration'] ?? $poll->duration;
             if ($duration) {
                 $validated['ends_at'] = now()->addSeconds($duration);
@@ -125,14 +127,12 @@ class ApiPollController extends Controller
      */
     public function destroy(Request $request, Poll $poll)
     {
-        // Vérification : seul le créateur peut supprimer son sondage
         if ($poll->user_id !== $request->user()->id) {
             return response()->json(['message' => 'Accès refusé.'], 403);
         }
 
         $poll->delete();
 
-        // 204 = succès sans contenu à retourner
         return response()->json(null, 204);
     }
 

@@ -2,7 +2,6 @@
 import { ref, onMounted } from 'vue';
 import { useFetchApi } from './composables/useFetchApi';
 
-// On récupère les fonctions du composable useFetchApi
 const { fetchApi } = useFetchApi();
 
 // La liste des sondages (tableau vide au départ)
@@ -14,10 +13,9 @@ const error = ref(null);
 // Charger les sondages depuis l'API au démarrage du composant
 onMounted(async () => {
     try {
-        // GET /api/v1/polls → retourne la liste des sondages de l'utilisateur connecté
+        // GET /api/v1/polls → retourne la liste des sondages avec leurs options
         polls.value = await fetchApi({ url: '/polls' });
     } catch (err) {
-        // Si l'utilisateur n'est pas connecté (401), on le redirige vers le login
         if (err.status === 401) {
             window.location.href = '/auth/login';
         } else {
@@ -28,14 +26,10 @@ onMounted(async () => {
 
 // Supprimer un sondage
 async function deletePoll(poll) {
-    // On demande confirmation avant de supprimer
     if (!confirm(`Supprimer le sondage "${poll.question}" ?`)) return;
 
     try {
-        // DELETE /api/v1/polls/{id}
         await fetchApi({ url: `/polls/${poll.id}`, method: 'DELETE' });
-
-        // On retire le sondage de la liste locale sans recharger la page
         polls.value = polls.value.filter(p => p.id !== poll.id);
     } catch (err) {
         alert('Erreur lors de la suppression.');
@@ -44,10 +38,17 @@ async function deletePoll(poll) {
 
 // Copier le lien de partage dans le presse-papier
 function copyShareLink(token) {
-    // On construit l'URL complète avec le token
     const url = `${window.location.origin}/polls/${token}`;
     navigator.clipboard.writeText(url);
     alert('Lien copié !');
+}
+
+// Naviguer vers l'édition en passant les données via sessionStorage
+function editPoll(poll) {
+    // On stocke les données du sondage temporairement
+    // pour que le formulaire puisse les lire sans faire d'appel API
+    sessionStorage.setItem('editPoll', JSON.stringify(poll));
+    window.location.href = `/polls/${poll.id}/edit`;
 }
 </script>
 
@@ -103,6 +104,14 @@ function copyShareLink(token) {
                         class="bg-blue-600 text-white text-sm px-3 py-1 rounded hover:bg-blue-700"
                     >
                         Copier lien
+                    </button>
+
+                    <!-- Modifier le sondage -->
+                    <button
+                        @click="editPoll(poll)"
+                        class="bg-gray-600 text-white text-sm px-3 py-1 rounded hover:bg-gray-500"
+                    >
+                        Modifier
                     </button>
 
                     <!-- Supprimer -->
