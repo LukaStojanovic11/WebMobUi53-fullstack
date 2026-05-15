@@ -9,7 +9,24 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class Poll extends Model
 {
     /**
-     * Get the user that owns the poll.
+     * Les champs que Laravel a le droit de remplir automatiquement.
+     * Sans cette liste, Poll::create() ne fonctionnerait pas (protection masse assignment).
+     */
+    protected $fillable = [
+        'user_id',
+        'question',
+        'secret_token',
+        'is_draft',
+        'allow_multiple_choices',
+        'allow_vote_change',
+        'results_public',
+        'duration',
+        'started_at',
+        'ends_at',
+    ];
+
+    /**
+     * L'utilisateur propriétaire du sondage.
      */
     public function user(): BelongsTo
     {
@@ -17,7 +34,7 @@ class Poll extends Model
     }
 
     /**
-     * Get the options for the poll.
+     * Les options du sondage.
      */
     public function options(): HasMany
     {
@@ -25,7 +42,7 @@ class Poll extends Model
     }
 
     /**
-     * Get the votes for the poll.
+     * Les votes du sondage.
      */
     public function votes(): HasMany
     {
