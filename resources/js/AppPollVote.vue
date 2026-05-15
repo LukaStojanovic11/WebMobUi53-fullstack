@@ -14,7 +14,7 @@ const poll = ref(null);
 const error = ref(null);
 const loading = ref(true);
 
-// Les options sélectionnées par l'utilisateur (tableau pour supporter choix multiple)
+// Les options sélectionnées par l'utilisateur
 const selectedOptions = ref([]);
 
 // Message après le vote
@@ -24,7 +24,6 @@ const hasVoted = ref(false);
 // Charger le sondage depuis l'API
 async function loadPoll() {
     try {
-        // GET /api/v1/polls/{token} → public, pas besoin d'être connecté
         const data = await fetchApi({ url: `/polls/${token}` });
         poll.value = data;
         loading.value = false;
@@ -34,7 +33,7 @@ async function loadPoll() {
     }
 }
 
-// Vérifier si le sondage est terminé (date de fin dépassée)
+// Vérifier si le sondage est terminé
 const isExpired = computed(() => {
     if (!poll.value?.ends_at) return false;
     return new Date(poll.value.ends_at) < new Date();
@@ -45,13 +44,13 @@ const isDraft = computed(() => {
     return poll.value?.is_draft;
 });
 
-// Calculer le total des votes pour le graphique
+// Calculer le total des votes
 const totalVotes = computed(() => {
     if (!poll.value?.options) return 0;
     return poll.value.options.reduce((sum, opt) => sum + (opt.votes_count ?? 0), 0);
 });
 
-// Calculer le pourcentage de votes pour une option
+// Calculer le pourcentage pour une option
 function getPercentage(votesCount) {
     if (totalVotes.value === 0) return 0;
     return Math.round((votesCount / totalVotes.value) * 100);
@@ -60,7 +59,6 @@ function getPercentage(votesCount) {
 // Gérer la sélection d'une option
 function toggleOption(optionId) {
     if (poll.value.allow_multiple_choices) {
-        // Choix multiple : on ajoute ou retire l'option
         const index = selectedOptions.value.indexOf(optionId);
         if (index === -1) {
             selectedOptions.value.push(optionId);
@@ -68,7 +66,6 @@ function toggleOption(optionId) {
             selectedOptions.value.splice(index, 1);
         }
     } else {
-        // Choix unique : on remplace la sélection
         selectedOptions.value = [optionId];
     }
 }
@@ -81,7 +78,6 @@ async function submitVote() {
     }
 
     try {
-        // POST /api/v1/polls/{token}/vote
         await fetchApi({
             url: `/polls/${token}/vote`,
             method: 'POST',
@@ -90,7 +86,6 @@ async function submitVote() {
 
         hasVoted.value = true;
         voteMessage.value = { type: 'success', text: 'Vote enregistré !' };
-        // On recharge le sondage pour voir les résultats mis à jour
         await loadPoll();
     } catch (err) {
         if (err.status === 401) {
@@ -103,7 +98,6 @@ async function submitVote() {
     }
 }
 
-// Charger le sondage au démarrage
 onMounted(loadPoll);
 
 // Polling : recharger les résultats toutes les 5 secondes
@@ -123,15 +117,15 @@ usePolling(loadPoll, 5000);
         <div v-else-if="poll">
 
             <!-- Question -->
-            <h1 class="text-2xl font-bold mb-2">{{ poll.question }}</h1>
+            <h1 class="text-2xl font-bold mb-2 dark:text-white">{{ poll.question }}</h1>
 
             <!-- Badges statut -->
-            <div class="flex gap-2 mb-6">
+            <div class="flex gap-2 mb-6 flex-wrap">
                 <span v-if="isDraft" class="text-xs bg-yellow-600 text-white px-2 py-1 rounded">
                     Brouillon — vote non disponible
                 </span>
                 <span v-else-if="isExpired" class="text-xs bg-red-600 text-white px-2 py-1 rounded">
-                    Sondage terminé
+                    Sondage terminé — plus aucun vote accepté
                 </span>
                 <span v-else class="text-xs bg-green-600 text-white px-2 py-1 rounded">
                     Sondage ouvert
@@ -150,7 +144,7 @@ usePolling(loadPoll, 5000);
                 {{ voteMessage.text }}
             </div>
 
-            <!-- Formulaire de vote (seulement si pas brouillon, pas expiré, pas encore voté) -->
+            <!-- Formulaire de vote -->
             <div v-if="!isDraft && !isExpired && !hasVoted" class="mb-6">
                 <p class="text-sm text-gray-400 mb-3">
                     {{ poll.allow_multiple_choices ? 'Plusieurs choix possibles' : 'Un seul choix possible' }}
@@ -162,9 +156,9 @@ usePolling(loadPoll, 5000);
                         :key="option.id"
                         @click="toggleOption(option.id)"
                         :class="selectedOptions.includes(option.id)
-                            ? 'bg-purple-600 border-purple-400'
-                            : 'bg-gray-800 border-gray-600'"
-                        class="w-full text-left p-3 rounded border hover:border-purple-400 transition"
+                            ? 'bg-purple-700 border-purple-400 text-white'
+                            : 'bg-gray-800 border-gray-600 text-white hover:border-purple-400'"
+                        class="w-full text-left p-3 rounded border transition"
                     >
                         {{ option.label }}
                     </button>
@@ -178,14 +172,14 @@ usePolling(loadPoll, 5000);
                 </button>
             </div>
 
-            <!-- Résultats (affichés si : voté, expiré, ou résultats publics) -->
+            <!-- Résultats -->
             <div v-if="hasVoted || isExpired || poll.results_public">
-                <h2 class="text-lg font-semibold mb-3">Résultats</h2>
+                <h2 class="text-lg font-semibold mb-3 dark:text-white">Résultats</h2>
                 <p class="text-sm text-gray-400 mb-4">{{ totalVotes }} vote(s) au total</p>
 
                 <div class="space-y-3">
                     <div v-for="option in poll.options" :key="option.id">
-                        <div class="flex justify-between text-sm mb-1">
+                        <div class="flex justify-between text-sm mb-1 dark:text-white">
                             <span>{{ option.label }}</span>
                             <span>{{ getPercentage(option.votes_count) }}% ({{ option.votes_count ?? 0 }})</span>
                         </div>
@@ -200,7 +194,7 @@ usePolling(loadPoll, 5000);
                 </div>
             </div>
 
-            <!-- Message si résultats non publics et pas encore voté -->
+            <!-- Message si résultats non publics -->
             <div v-else-if="!isDraft">
                 <p class="text-gray-400 text-sm mt-4">
                     Les résultats ne sont pas publics. Votez pour les voir.
