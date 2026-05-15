@@ -9,7 +9,15 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class PollOption extends Model
 {
     /**
-     * Get the poll that owns the option.
+     * Les champs que Laravel a le droit de remplir automatiquement.
+     */
+    protected $fillable = [
+        'poll_id',
+        'label',
+    ];
+
+    /**
+     * Le sondage auquel appartient cette option.
      */
     public function poll(): BelongsTo
     {
@@ -17,7 +25,7 @@ class PollOption extends Model
     }
 
     /**
-     * Get the votes for this option.
+     * Les votes pour cette option.
      */
     public function votes(): HasMany
     {
